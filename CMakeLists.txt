@@ -15,10 +15,12 @@ include(CheckTypeSize)
 cmake_minimum_required(VERSION 3.0)
 project(r3 VERSION 2.0.0)
 
-SET(CMAKE_MODULE_PATH
+set(CMAKE_MODULE_PATH
     ${PROJECT_SOURCE_DIR}/cmake/Modules
     ${CMAKE_MODULE_PATH}
 )
+
+option(ENABLE_TESTS "Whether the tests must be compiled and executed" ON)
 
 # check for availability of certain headers
 CHECK_INCLUDE_FILE(dlfcn.h              HAVE_DLFCN_H)
@@ -45,18 +47,19 @@ CHECK_SYMBOL_EXISTS("strstr"        "string.h"      HAVE_STRSTR)
 # check availability of certain types
 CHECK_TYPE_SIZE(_Bool   _BOOL)
 
-# generate the configuration file
-configure_file("${PROJECT_SOURCE_DIR}/config.h.cmake" "${PROJECT_BINARY_DIR}/config.h")
+set(CONFIG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
-include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/3rdparty ${PROJECT_BINARY_DIR})
+# generate the configuration file
+configure_file("config.h.cmake" "${CONFIG_INCLUDE_DIR}/config.h")
 
 find_package(PCRE REQUIRED)
-
-set(LIBS ${PCRE_LIBRARIES} r3 lib3rdparty)
-
-enable_testing()
+find_package(Check)
 
 add_subdirectory(3rdparty)
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(ENABLE_TESTS AND CHECK_FOUND)
+    enable_testing()
+    add_subdirectory(tests)
+endif(ENABLE_TESTS AND CHECK_FOUND)
 # add_test(test_tree ${CMAKE_CURRENT_BINARY_DIR}/check_tree)
