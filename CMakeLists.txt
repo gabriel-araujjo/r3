@@ -1,28 +1,13 @@
-# cmake file examples
-# https://code.google.com/p/opencv-feature-tracker/source/browse/CMakeLists.txt?r=f804b03e704147e65183c19a50f57abedb22f45c
-
-
-# TODO:
-# cmake clean... orz
-# http://stackoverflow.com/questions/9680420/looking-for-a-cmake-clean-command-to-clear-up-cmake-output
-
-# load required modules
-include(CheckIncludeFile)
-include(CheckSymbolExists)
-include(CheckTypeSize)
-
-
 cmake_minimum_required(VERSION 3.0)
 project(r3 VERSION 2.0.0)
 
-set(CMAKE_MODULE_PATH
-    ${PROJECT_SOURCE_DIR}/cmake/Modules
-    ${CMAKE_MODULE_PATH}
-)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+set(CMAKE_C_STANDARD 99)
 
 option(ENABLE_TESTS "Whether the tests must be compiled and executed" ON)
 
 # check for availability of certain headers
+include(CheckIncludeFile)
 CHECK_INCLUDE_FILE(dlfcn.h              HAVE_DLFCN_H)
 CHECK_INCLUDE_FILE(inttypes.h           HAVE_INTTYPES_H)
 CHECK_INCLUDE_FILE(jemalloc/jemalloc.h  HAVE_JEMALLOC_JEMALLOC_H)
@@ -36,6 +21,7 @@ CHECK_INCLUDE_FILE(sys/time.h           HAVE_SYS_TIME_H)
 CHECK_INCLUDE_FILE(unistd.h             HAVE_UNISTD_H)
 
 # check availability of certain system functions
+include(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS("gettimeofday"  "sys/time.h"    HAVE_GETTIMEOFDAY)
 CHECK_SYMBOL_EXISTS("memset"        "string.h"      HAVE_MEMSET)
 CHECK_SYMBOL_EXISTS("strchr"        "string.h"      HAVE_STRCHR)
@@ -45,12 +31,12 @@ CHECK_SYMBOL_EXISTS("strnstr"       "string.h"      HAVE_STRNSTR)
 CHECK_SYMBOL_EXISTS("strstr"        "string.h"      HAVE_STRSTR)
 
 # check availability of certain types
+include(CheckTypeSize)
 CHECK_TYPE_SIZE(_Bool   _BOOL)
 
-set(CONFIG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-
 # generate the configuration file
-configure_file("config.h.cmake" "${CONFIG_INCLUDE_DIR}/config.h")
+set(CONFIG_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+configure_file("config.h.in" "${CONFIG_INCLUDE_DIR}/config.h")
 
 find_package(PCRE REQUIRED)
 find_package(Check)
@@ -58,8 +44,20 @@ find_package(Check)
 add_subdirectory(3rdparty)
 add_subdirectory(src)
 
+set(prefix ${CMAKE_INSTALL_PREFIX})
+set(exec_prefix ${prefix})
+set(includedir ${prefix}/include)
+set(libdir ${prefix}/lib)
+set(PACKAGE_VERSION ${PROJECT_VERSION})
+
+# generate the package-config file
+set(PC_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+configure_file(r3.pc.in "${PC_DIR}/r3.pc" @ONLY)
+install(FILES "${PC_DIR}/r3.pc" DESTINATION lib/pkgconfig)
+
 if(ENABLE_TESTS AND CHECK_FOUND)
-    enable_testing()
-    add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
+else(NOT ENABLE_TESTS OR CHECK_FOUND)
+  message(STATUS "Skipping unit tests, Check library not found!")
 endif(ENABLE_TESTS AND CHECK_FOUND)
-# add_test(test_tree ${CMAKE_CURRENT_BINARY_DIR}/check_tree)
